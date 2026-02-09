@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>shop</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e1e1e;
+            color: #dcddde;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .back-button, .admin-button {
+            position: fixed;
+            top: 20px;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            z-index: 1000;
+            font-weight: 600;
+        }
+
+        .back-button {
+            left: 20px;
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            color: #dcddde;
+        }
+
+        .back-button:hover {
+            background: #3a3a3a;
+            border-color: #5865f2;
+        }
+
+        .admin-button {
+            right: 20px;
+            background: #5865f2;
+            border: none;
+            color: white;
+        }
+
+        .admin-button:hover {
+            background: #4752c4;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: #2a2a2a;
+            border-right: 1px solid #3a3a3a;
+            padding: 80px 20px 20px 20px;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            font-size: 16px;
+            color: #b9bbbe;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .category-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .category-btn {
+            background: transparent;
+            border: none;
+            color: #dcddde;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            text-align: left;
+            transition: all 0.2s;
+        }
+
+        .category-btn:hover {
+            background: #3a3a3a;
+            color: #ffffff;
+        }
+
+        .category-btn.active {
+            background: #5865f2;
+            color: white;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 20px;
+            background: #2a2a2a;
+            border-bottom: 1px solid #3a3a3a;
+        }
+
+        header h1 {
+            font-size: 28px;
+            color: #ffffff;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            width: 100%;
+        }
+
+        .products {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 25px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .product {
+            background: #2a2a2a;
+            border-radius: 8px;
+            border: 1px solid #3a3a3a;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .product:hover {
+            transform: translateY(-4px);
+            border-color: #5865f2;
+            box-shadow: 0 4px 12px rgba(88, 101, 242, 0.2);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 180px;
+            background: #1e1e1e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .product-info {
+            padding: 18px;
+        }
+
+        .product-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .product-description {
+            font-size: 13px;
+            color: #b9bbbe;
+            line-height: 1.4;
+            margin-bottom: 12px;
+            min-height: 55px;
+        }
+
+        .product-footer {
+            padding-top: 12px;
+            border-top: 1px solid #3a3a3a;
+        }
+
+        .product-price {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 12px;
+        }
+
+        .payment-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-payment {
+            flex: 1;
+            border: none;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-paypal {
+            background: #0070ba;
+            color: white;
+        }
+
+        .btn-paypal:hover {
+            background: #005ea6;
+        }
+
+        .btn-crypto {
+            background: #f7931a;
+            color: white;
+        }
+
+        .btn-crypto:hover {
+            background: #e08316;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 20px;
+        }
+
+        .modal-body {
+            color: #b9bbbe;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-modal {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-cancel {
+            background: transparent;
+            border: 1px solid #3a3a3a;
+            color: #dcddde;
+        }
+
+        .btn-cancel:hover {
+            background: #3a3a3a;
+        }
+
+        .btn-confirm {
+            background: #5865f2;
+            color: white;
+        }
+
+        .btn-confirm:hover {
+            background: #4752c4;
+        }
+
+        .loading, .error {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading {
+            color: #b9bbbe;
+        }
+
+        .error {
+            color: #ed4245;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #ffffff;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            background: #1e1e1e;
+            border: 1px solid #3a3a3a;
+            color: #dcddde;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #5865f2;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .admin-panel {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1e1e1e;
+            z-index: 3000;
+            overflow-y: auto;
+        }
+
+        .admin-panel.show {
+            display: block;
+        }
+
+        .admin-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #3a3a3a;
+        }
+
+        .admin-header h1 {
+            font-size: 32px;
+            color: #ffffff;
+        }
+
+        .admin-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #3a3a3a;
+            padding-bottom: 15px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: #b9bbbe;
+            padding: 10px 20px;
+            border-radius: 6px 6px 0 0;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .tab-btn:hover {
+            background: #2a2a2a;
+            color: #ffffff;
+        }
+
+        .tab-btn.active {
+            background: #5865f2;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .tab-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .tab-header h2 {
+            font-size: 24px;
+            color: #ffffff;
+        }
+
+        .admin-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .admin-item {
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.2s;
+        }
+
+        .admin-item:hover {
+            border-color: #5865f2;
+            box-shadow: 0 2px 8px rgba(88, 101, 242, 0.2);
+        }
+
+        .admin-item-info h3 {
+            color: #ffffff;
+            margin-bottom: 8px;
+            font-size: 18px;
+        }
+
+        .admin-item-info p {
+            color: #b9bbbe;
+            font-size: 14px;
+            margin-bottom: 4px;
+            line-height: 1.5;
+        }
+
+        .admin-item-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #3a3a3a;
+        }
+
+        .btn-edit {
+            flex: 1;
+            background: #5865f2;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-edit:hover {
+            background: #4752c4;
+        }
+
+        .btn-delete {
+            flex: 1;
+            background: #ed4245;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-delete:hover {
+            background: #c03537;
+        }
+
+        .btn-add {
+            background: #3ba55d;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-add:hover {
+            background: #2d7d46;
+        }
+
+        .admin-close-btn {
+            background: #ed4245;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .admin-close-btn:hover {
+            background: #c03537;
+        }
+
+        @media (max-width: 1400px) {
+            .products {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .products {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .admin-list {
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .products {
+                grid-template-columns: 1fr;
+            }
+
+            .back-button, .admin-button {
+                padding: 8px 16px;
+                font-size: 13px;
+            }
+
+            .back-button {
+                left: 10px;
+                top: 10px;
+            }
+
+            .admin-button {
+                right: 10px;
+                top: 10px;
+            }
+
+            .admin-list {
+                grid-template-columns: 1fr;
+            }
+
+            .admin-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+<button class="back-button" onclick="window.location.href = window.location.origin">← back</button>
+<button class="admin-button" onclick="openAdminPanel()">admin</button>
+
+<div class="sidebar" id="mainSidebar">
+    <h2>categories</h2>
+    <div class="category-nav" id="categoryNav">
+        <button class="category-btn active" data-category="all">all products</button>
+    </div>
+</div>
+
+<div class="main-content" id="mainContent">
+    <header>
+        <h1>shop</h1>
+    </header>
+
+    <div class="container">
+        <div class="products" id="productsContainer">
+            <div class="loading">loading products...</div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="paymentModal">
+    <div class="modal-content">
+        <div class="modal-header">confirm purchase</div>
+        <div class="modal-body">
+            <p><strong>product:</strong> <span id="modalProduct"></span></p>
+            <p><strong>price:</strong> <span id="modalPrice"></span></p>
+            <p><strong>payment method:</strong> <span id="modalPayment"></span></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal btn-cancel" onclick="closeModal()">cancel</button>
+            <button class="btn-modal btn-confirm" onclick="processPurchase()">confirm</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="formModal">
+    <div class="modal-content">
+        <div class="modal-header" id="formModalTitle">add product</div>
+        <div class="modal-body" id="formModalBody"></div>
+        <div class="modal-footer">
+            <button class="btn-modal btn-cancel" onclick="closeFormModal()">cancel</button>
+            <button class="btn-modal btn-confirm" onclick="submitForm()">save</button>
+        </div>
+    </div>
+</div>
+
+<div class="admin-panel" id="adminPanel">
+    <div class="admin-content">
+        <div class="admin-header">
+            <h1>admin panel</h1>
+            <button class="admin-close-btn" onclick="closeAdminPanel()">close admin</button>
+        </div>
+
+        <div class="admin-tabs">
+            <button class="tab-btn active" onclick="switchTab('products')">products</button>
+            <button class="tab-btn" onclick="switchTab('categories')">categories</button>
+        </div>
+
+        <div class="tab-content active" id="productsTab">
+            <div class="tab-header">
+                <h2>manage products</h2>
+                <button class="btn-add" onclick="openProductForm()">+ add product</button>
+            </div>
+            <div class="admin-list" id="productsList"></div>
+        </div>
+
+        <div class="tab-content" id="categoriesTab">
+            <div class="tab-header">
+                <h2>manage categories</h2>
+                <button class="btn-add" onclick="openCategoryForm()">+ add category</button>
+            </div>
+            <div class="admin-list" id="categoriesList"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const config = {
+        basePath: '/shop',
+        apiEndpoints: {
+            products: '/products/list',
+            productsByCategory: '/products/list/',
+            categories: '/categories/list',
+            product: '/product/',
+            productCreate: '/product/create',
+            productUpdate: '/product/update/',
+            productDelete: '/product/delete/',
+            categoryCreate: '/category/create',
+            categoryUpdate: '/category/update/',
+            categoryDelete: '/category/delete/'
+        }
+    };
+
+    let currentPurchase = null;
+    let allProducts = [];
+    let allCategories = [];
+    let currentCategory = 'all';
+    let currentForm = null;
+
+    async function fetchCategories() {
+        try {
+            const response = await fetch(`${config.basePath}${config.apiEndpoints.categories}`);
+            const data = await response.json();
+            return data.error ? [] : (data.categories || []);
+        } catch (error) {
+            console.error('error fetching categories:', error);
+            return [];
+        }
+    }
+
+    async function fetchProducts(category = null) {
+        try {
+            const url = category
+                ? `${config.basePath}${config.apiEndpoints.productsByCategory}${category}`
+                : `${config.basePath}${config.apiEndpoints.products}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            return data.error ? [] : (data.products || []);
+        } catch (error) {
+            console.error('error fetching products:', error);
+            return [];
+        }
+    }
+
+    function displayCategories(categories) {
+        const categoryNav = document.getElementById('categoryNav');
+        categoryNav.innerHTML = '<button class="category-btn active" data-category="all">all products</button>';
+        categories.forEach(category => {
+            const btn = document.createElement('button');
+            btn.className = 'category-btn';
+            btn.dataset.category = category.name;
+            btn.textContent = category.name;
+            btn.addEventListener('click', () => filterByCategory(category.name));
+            categoryNav.appendChild(btn);
+        });
+    }
+
+    function displayProducts(products) {
+        const container = document.getElementById('productsContainer');
+        if (products.length === 0) {
+            container.innerHTML = '<div class="error">no products found</div>';
+            return;
+        }
+        container.innerHTML = '';
+        products.forEach(product => {
+            const productEl = document.createElement('div');
+            productEl.className = 'product';
+            productEl.innerHTML = `
+            <div class="product-image">
+                <img src="${product.image_url || 'https://via.placeholder.com/300x200/5865f2/ffffff?text=Product'}" alt="${product.name}">
+            </div>
+            <div class="product-info">
+                <div class="product-title">${product.name}</div>
+                <div class="product-description">${product.description || ''}</div>
+                <div class="product-footer">
+                    <div class="product-price">$${parseFloat(product.price).toFixed(2)}</div>
+                    <div class="payment-buttons">
+                        <button class="btn-payment btn-paypal" data-payment="paypal">paypal</button>
+                        <button class="btn-payment btn-crypto" data-payment="crypto">crypto</button>
+                    </div>
+                </div>
+            </div>
+        `;
+            productEl.querySelectorAll('.btn-payment').forEach(btn => {
+                btn.addEventListener('click', () => handlePaymentClick(product, btn.dataset.payment));
+            });
+            container.appendChild(productEl);
+        });
+    }
+
+    async function filterByCategory(categoryName) {
+        currentCategory = categoryName;
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.category === categoryName);
+        });
+        const container = document.getElementById('productsContainer');
+        container.innerHTML = '<div class="loading">loading products...</div>';
+        const products = categoryName === 'all' ? await fetchProducts() : await fetchProducts(categoryName);
+        displayProducts(products);
+    }
+
+    function handlePaymentClick(product, paymentMethod) {
+        currentPurchase = { id: product.id, name: product.name, price: product.price, payment: paymentMethod };
+        document.getElementById('modalProduct').textContent = product.name;
+        document.getElementById('modalPrice').textContent = `$${parseFloat(product.price).toFixed(2)}`;
+        document.getElementById('modalPayment').textContent = paymentMethod === 'paypal' ? 'paypal' : 'cryptocurrency';
+        document.getElementById('paymentModal').classList.add('show');
+    }
+
+    function closeModal() {
+        document.getElementById('paymentModal').classList.remove('show');
+        currentPurchase = null;
+    }
+
+    async function processPurchase() {
+        if (!currentPurchase) return;
+
+        try {
+            const response = await fetch(`${config.basePath}/payment/create`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    product_id: currentPurchase.id,
+                    payment_method: currentPurchase.payment
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.error) {
+                alert('error: ' + result.error);
+            } else {
+                // öffne in neuem fenster
+                const paymentUrl = currentPurchase.payment === 'paypal'
+                    ? result.approvalUrl
+                    : result.hostedUrl;
+
+                const popup = window.open(
+                    paymentUrl,
+                    'payment',
+                    'width=600,height=800,left=100,top=100'
+                );
+
+                // optional: check ob popup geschlossen wurde
+                const checkClosed = setInterval(() => {
+                    if (popup.closed) {
+                        clearInterval(checkClosed);
+                        console.log('payment window closed');
+                        // refresh products oder status check
+                    }
+                }, 1000);
+            }
+        } catch (error) {
+            alert('error: ' + error.message);
+        }
+
+        closeModal();
+    }
+
+    function openAdminPanel() {
+        document.getElementById('adminPanel').classList.add('show');
+        document.getElementById('mainSidebar').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'none';
+        loadAdminData();
+    }
+
+    function closeAdminPanel() {
+        document.getElementById('adminPanel').classList.remove('show');
+        document.getElementById('mainSidebar').style.display = 'block';
+        document.getElementById('mainContent').style.display = 'flex';
+    }
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById(tab + 'Tab').classList.add('active');
+    }
+
+    async function loadAdminData() {
+        await loadAdminProducts();
+        await loadAdminCategories();
+    }
+
+    async function loadAdminProducts() {
+        const products = await fetchProducts();
+        const list = document.getElementById('productsList');
+        if (products.length === 0) {
+            list.innerHTML = '<div class="error">no products yet</div>';
+            return;
+        }
+        list.innerHTML = '';
+        products.forEach(product => {
+            const item = document.createElement('div');
+            item.className = 'admin-item';
+            item.innerHTML = `
+            <div class="admin-item-info">
+                <h3>${product.name}</h3>
+                <p><strong>price:</strong> $${parseFloat(product.price).toFixed(2)}</p>
+                <p><strong>category:</strong> ${product.category_name || 'no category'}</p>
+                <p><strong>stock:</strong> ${product.stock}</p>
+                <p><strong>status:</strong> ${product.active ? 'active' : 'inactive'}</p>
+            </div>
+            <div class="admin-item-actions">
+                <button class="btn-edit" onclick="editProduct(${product.id})">edit</button>
+                <button class="btn-delete" onclick="deleteProduct(${product.id})">delete</button>
+            </div>
+        `;
+            list.appendChild(item);
+        });
+    }
+
+    async function loadAdminCategories() {
+        const categories = await fetchCategories();
+        const list = document.getElementById('categoriesList');
+        if (categories.length === 0) {
+            list.innerHTML = '<div class="error">no categories yet</div>';
+            return;
+        }
+        list.innerHTML = '';
+        categories.forEach(category => {
+            const item = document.createElement('div');
+            item.className = 'admin-item';
+            item.innerHTML = `
+            <div class="admin-item-info">
+                <h3>${category.name}</h3>
+                <p>${category.description || 'no description'}</p>
+            </div>
+            <div class="admin-item-actions">
+                <button class="btn-edit" onclick="editCategory(${category.id})">edit</button>
+                <button class="btn-delete" onclick="deleteCategory(${category.id})">delete</button>
+            </div>
+        `;
+            list.appendChild(item);
+        });
+    }
+
+    function openProductForm(product = null) {
+        closeAdminPanel();
+        const title = product ? 'edit product' : 'add product';
+        const body = `
+        <div class="form-group">
+            <label>name</label>
+            <input type="text" id="productName" value="${product ? product.name : ''}" placeholder="enter product name">
+        </div>
+        <div class="form-group">
+            <label>description</label>
+            <textarea id="productDescription" placeholder="enter product description">${product ? product.description || '' : ''}</textarea>
+        </div>
+        <div class="form-group">
+            <label>price</label>
+            <input type="number" step="0.01" id="productPrice" value="${product ? product.price : ''}" placeholder="0.00">
+        </div>
+        <div class="form-group">
+            <label>category</label>
+            <select id="productCategory">
+                <option value="">no category</option>
+                ${allCategories.map(cat => `<option value="${cat.id}" ${product && product.category_id === cat.id ? 'selected' : ''}>${cat.name}</option>`).join('')}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>image url</label>
+            <input type="text" id="productImageUrl" value="${product ? product.image_url || '' : ''}" placeholder="https://example.com/image.jpg">
+        </div>
+        <div class="form-group">
+            <label>stock</label>
+            <input type="number" id="productStock" value="${product ? product.stock : 0}" placeholder="0">
+        </div>
+        <div class="form-group">
+            <label>active</label>
+            <select id="productActive">
+                <option value="1" ${!product || product.active === 1 ? 'selected' : ''}>yes</option>
+                <option value="0" ${product && product.active === 0 ? 'selected' : ''}>no</option>
+            </select>
+        </div>
+    `;
+        currentForm = { type: 'product', data: product };
+        document.getElementById('formModalTitle').textContent = title;
+        document.getElementById('formModalBody').innerHTML = body;
+        document.getElementById('formModal').classList.add('show');
+    }
+
+    function openCategoryForm(category = null) {
+        closeAdminPanel();
+        const title = category ? 'edit category' : 'add category';
+        const body = `
+        <div class="form-group">
+            <label>name</label>
+            <input type="text" id="categoryName" value="${category ? category.name : ''}" placeholder="enter category name">
+        </div>
+        <div class="form-group">
+            <label>description</label>
+            <textarea id="categoryDescription" placeholder="enter category description">${category ? category.description || '' : ''}</textarea>
+        </div>
+    `;
+        currentForm = { type: 'category', data: category };
+        document.getElementById('formModalTitle').textContent = title;
+        document.getElementById('formModalBody').innerHTML = body;
+        document.getElementById('formModal').classList.add('show');
+    }
+
+    function closeFormModal() {
+        document.getElementById('formModal').classList.remove('show');
+        currentForm = null;
+        openAdminPanel();
+    }
+
+    async function submitForm() {
+        if (!currentForm) return;
+        currentForm.type === 'product' ? await saveProduct() : await saveCategory();
+    }
+
+    async function saveProduct() {
+        const data = {
+            name: document.getElementById('productName').value,
+            description: document.getElementById('productDescription').value,
+            price: parseFloat(document.getElementById('productPrice').value),
+            category_id: document.getElementById('productCategory').value || null,
+            image_url: document.getElementById('productImageUrl').value,
+            stock: parseInt(document.getElementById('productStock').value),
+            active: parseInt(document.getElementById('productActive').value)
+        };
+        const isEdit = currentForm.data && currentForm.data.id;
+        const url = isEdit ? `${config.basePath}${config.apiEndpoints.productUpdate}${currentForm.data.id}` : `${config.basePath}${config.apiEndpoints.productCreate}`;
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (result.error) {
+                alert('error: ' + result.error);
+            } else {
+                document.getElementById('formModal').classList.remove('show');
+                currentForm = null;
+                await init();
+                openAdminPanel();
+            }
+        } catch (error) {
+            alert('error: ' + error.message);
+        }
+    }
+
+    async function saveCategory() {
+        const data = {
+            name: document.getElementById('categoryName').value,
+            description: document.getElementById('categoryDescription').value
+        };
+        const isEdit = currentForm.data && currentForm.data.id;
+        const url = isEdit ? `${config.basePath}${config.apiEndpoints.categoryUpdate}${currentForm.data.id}` : `${config.basePath}${config.apiEndpoints.categoryCreate}`;
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (result.error) {
+                alert('error: ' + result.error);
+            } else {
+                document.getElementById('formModal').classList.remove('show');
+                currentForm = null;
+                await init();
+                openAdminPanel();
+            }
+        } catch (error) {
+            alert('error: ' + error.message);
+        }
+    }
+
+    async function editProduct(id) {
+        const response = await fetch(`${config.basePath}${config.apiEndpoints.product}${id}`);
+        const data = await response.json();
+        data.error ? alert('error: ' + data.error) : openProductForm(data.product);
+    }
+
+    async function editCategory(id) {
+        const category = allCategories.find(c => c.id === id);
+        if (category) openCategoryForm(category);
+    }
+
+    async function deleteProduct(id) {
+        if (!confirm('delete this product?')) return;
+        try {
+            const response = await fetch(`${config.basePath}${config.apiEndpoints.productDelete}${id}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (result.error) {
+                alert('error: ' + result.error);
+            } else {
+                await loadAdminProducts();
+                await init();
+            }
+        } catch (error) {
+            alert('error: ' + error.message);
+        }
+    }
+
+    async function deleteCategory(id) {
+        if (!confirm('delete this category?')) return;
+        try {
+            const response = await fetch(`${config.basePath}${config.apiEndpoints.categoryDelete}${id}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (result.error) {
+                alert('error: ' + result.error);
+            } else {
+                await loadAdminCategories();
+                await init();
+            }
+        } catch (error) {
+            alert('error: ' + error.message);
+        }
+    }
+
+    async function init() {
+        allCategories = await fetchCategories();
+        displayCategories(allCategories);
+        allProducts = await fetchProducts();
+        displayProducts(allProducts);
+    }
+
+    document.getElementById('paymentModal').addEventListener('click', (e) => {
+        if (e.target.id === 'paymentModal') closeModal();
+    });
+
+    init();
+</script>
+</body>
+</html>
