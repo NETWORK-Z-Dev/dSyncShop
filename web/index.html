@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,82 +10,84 @@
 
     <title>Shop</title>
 </head>
+
 <body>
-<button class="back-button" onclick="window.location.href = window.location.origin">← back</button>
-<button class="admin-button" onclick="openAdminPanel()">admin</button>
+    <button class="back-button" onclick="window.location.href = window.location.origin">← back</button>
+    <button class="admin-button" onclick="openAdminPanel()">admin</button>
 
-<div class="admin-overlay" id="adminOverlay" onclick="closeAdminPanel()"></div>
+    <div class="admin-overlay" id="adminOverlay" onclick="closeAdminPanel()"></div>
 
-<div class="sidebar" id="mainSidebar">
-    <h2>categories</h2>
-    <div class="category-nav" id="categoryNav">
-        <button class="category-btn active" data-category="all">all products</button>
-    </div>
-</div>
-
-<div class="main-content" id="mainContent">
-    <header>
-        <h1>shop</h1>
-    </header>
-    <div class="container">
-        <div class="products" id="productsContainer">
-            <div class="loading">loading products...</div>
+    <div class="sidebar" id="mainSidebar">
+        <h2>categories</h2>
+        <div class="category-nav" id="categoryNav">
+            <button class="category-btn active" data-category="all">All Products</button>
         </div>
     </div>
-</div>
 
-<div class="modal" id="paymentModal">
-    <div class="modal-content">
-        <div class="modal-header">confirm purchase</div>
-        <div class="modal-body">
-            <p><strong>product:</strong> <span id="modalProduct"></span></p>
-            <p><strong>price:</strong> <span id="modalPrice"></span></p>
-            <p><strong>payment method:</strong> <span id="modalPayment"></span></p>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-modal btn-cancel" onclick="closeModal()">cancel</button>
-            <button class="btn-modal btn-confirm" onclick="processPurchase()">confirm</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal" id="formModal">
-    <div class="modal-content">
-        <div class="modal-header" id="formModalTitle">add product</div>
-        <div class="modal-body" id="formModalBody"></div>
-        <div class="modal-footer">
-            <button class="btn-modal btn-cancel" onclick="closeFormModal()">cancel</button>
-            <button class="btn-modal btn-confirm" onclick="submitForm()">save</button>
-        </div>
-    </div>
-</div>
-
-<div class="admin-panel" id="adminPanel">
-    <div class="admin-content">
-        <div class="admin-header">
-            <h1>admin panel</h1>
-            <button class="admin-close-btn" onclick="closeAdminPanel()">close admin</button>
-        </div>
-        <div class="admin-tabs">
-            <button class="tab-btn active" onclick="switchTab('products', event)">products</button>
-            <button class="tab-btn" onclick="switchTab('categories', event)">categories</button>
-        </div>
-        <div class="tab-content active" id="productsTab">
-            <div class="tab-header">
-                <h2>manage products</h2>
-                <button class="btn-add" onclick="openProductForm()">+ add product</button>
+    <div class="main-content" id="mainContent">
+        <header>
+            <h1>shop</h1>
+        </header>
+        <div class="container">
+            <div class="products" id="productsContainer">
+                <div class="loading">loading products...</div>
             </div>
-            <div class="admin-list" id="productsList"></div>
-        </div>
-        <div class="tab-content" id="categoriesTab">
-            <div class="tab-header">
-                <h2>manage categories</h2>
-                <button class="btn-add" onclick="openCategoryForm()">+ add category</button>
-            </div>
-            <div class="admin-list" id="categoriesList"></div>
         </div>
     </div>
-</div>
+
+    <div class="modal" id="paymentModal">
+        <div class="modal-content">
+            <div class="modal-header">confirm purchase</div>
+            <div class="modal-body">
+                <p><strong>product:</strong> <span id="modalProduct"></span></p>
+                <p><strong>price:</strong> <span id="modalPrice"></span></p>
+                <p><strong>payment method:</strong> <span id="modalPayment"></span></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-cancel" onclick="closeModal()">cancel</button>
+                <button class="btn-modal btn-confirm" onclick="processPurchase()">confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="formModal">
+        <div class="modal-content">
+            <div class="modal-header" id="formModalTitle">add product</div>
+            <div class="modal-body" id="formModalBody"></div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-cancel" onclick="closeFormModal()">cancel</button>
+                <button class="btn-modal btn-confirm" onclick="submitForm()">save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-panel" id="adminPanel">
+        <div class="admin-content">
+            <div class="admin-header">
+                <h1>admin panel</h1>
+                <button class="admin-close-btn" onclick="closeAdminPanel()">close admin</button>
+            </div>
+            <div class="admin-tabs">
+                <button class="tab-btn active" onclick="switchTab('products', event)">products</button>
+                <button class="tab-btn" onclick="switchTab('categories', event)">categories</button>
+            </div>
+            <div class="tab-content active" id="productsTab">
+                <div class="tab-header">
+                    <h2>manage products</h2>
+                    <button class="btn-add" onclick="openProductForm()">+ add product</button>
+                </div>
+                <div class="admin-list" id="productsList"></div>
+            </div>
+            <div class="tab-content" id="categoriesTab">
+                <div class="tab-header">
+                    <h2>manage categories</h2>
+                    <button class="btn-add" onclick="openCategoryForm()">+ add category</button>
+                </div>
+                <div class="admin-list" id="categoriesList"></div>
+            </div>
+        </div>
+    </div>
 
 </body>
+
 </html>
