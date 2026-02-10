@@ -8,6 +8,9 @@ export default class dSyncShop {
                     payments = null,
                     db = null,
                     basePath = '/shop',
+                    isAdmin = null,
+                    enrichMetadata = null,
+                    productActions = {},
                 } = {}) {
 
         if(!app) throw new Error("missing express app instance");
@@ -20,66 +23,69 @@ export default class dSyncShop {
         this.payments = payments;
         this.basePath = basePath;
         this.db = db;
+        this.isAdmin = isAdmin;
+        this.enrichMetadata = enrichMetadata;
+        this.productActions = productActions;
 
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = path.dirname(__filename);
 
         const staticDir = path.join(__dirname, "web");
 
-        // payment event handlers
         if (this.payments) {
-            const originalOnPaymentCompleted = this.payments.onPaymentCompleted;
-            const originalOnPaymentFailed = this.payments.onPaymentFailed;
-            const originalOnPaymentCancelled = this.payments.onPaymentCancelled;
+            const originalCompleted  = this.payments.callbacks.onPaymentCompleted;
+            const originalFailed     = this.payments.callbacks.onPaymentFailed;
+            const originalCancelled  = this.payments.callbacks.onPaymentCancelled;
 
-            this.payments.onPaymentCompleted = async (data) => {
+            this.payments.callbacks.onPaymentCompleted = async (data) => {
                 console.log('[dSyncShop] payment completed:', data);
-
-                if (originalOnPaymentCompleted) {
-                    originalOnPaymentCompleted(data);
-                }
-
-                // dann order erstellen
+                if (originalCompleted) await originalCompleted(data);
                 await this.createOrder({ ...data, status: 'COMPLETED' });
             };
 
-            this.payments.onPaymentFailed = async (data) => {
+            this.payments.callbacks.onPaymentFailed = async (data) => {
                 console.log('[dSyncShop] payment failed:', data);
-
-                if (originalOnPaymentFailed) {
-                    originalOnPaymentFailed(data);
-                }
-
+                if (originalFailed) await originalFailed(data);
                 await this.createOrder({ ...data, status: 'FAILED' });
             };
 
-            this.payments.onPaymentCancelled = async (data) => {
+            this.payments.callbacks.onPaymentCancelled = async (data) => {
                 console.log('[dSyncShop] payment cancelled:', data);
-
-                if (originalOnPaymentCancelled) {
-                    originalOnPaymentCancelled(data);
-                }
-
+                if (originalCancelled) await originalCancelled(data);
                 await this.createOrder({ ...data, status: 'CANCELLED' });
             };
         }
 
-        app.use(
-            basePath,
-            express.static(staticDir)
-        );
+        app.use(basePath, express.static(staticDir));
 
         this.registerRoutes();
         this.initDB();
     }
 
-    async createOrder(paymentData) {
-        const { metadata, pricing, amount, paymentId, status, provider } = paymentData;
+    adminMiddleware() {
+        return async (req, res, next) => {
+            if (!this.isAdmin) return next();
+            const result = await this.isAdmin(req);
+            if (!result) return res.status(403).json({ error: 'forbidden' });
+            next();
+        };
+    }
 
-        // amount könnte auch in pricing sein (bei coinbase)
+    // normalize action - supports both shorthand function and full object definition
+    resolveAction(key) {
+        const action = this.productActions[key];
+        if (!action) return null;
+        if (typeof action === 'function') {
+            return { label: key, params: [], handler: action };
+        }
+        return action;
+    }
+
+    async createOrder(paymentData) {
+        const { metadata, pricing, amount, paymentId, status, provider, chargeId, orderId } = paymentData;
+
         const finalAmount = amount || (pricing?.local?.amount ? parseFloat(pricing.local.amount) : 0);
 
-        // payment status zu order status mappen
         let orderStatus = 'pending';
         if (status === 'COMPLETED' || status === 'confirmed') {
             orderStatus = 'completed';
@@ -89,28 +95,50 @@ export default class dSyncShop {
             orderStatus = 'cancelled';
         }
 
-        // check if metadata has product_id
         if (!metadata || !metadata.product_id) {
-            console.error('no product_id in metadata:', paymentData);
+            console.error('[dSyncShop] no product_id in metadata:', paymentData);
             return;
         }
 
-        // order in db speichern
+        const finalPaymentId = paymentId || orderId || chargeId || null;
+
         const result = await this.db.queryDatabase(
-            "insert into orders (total_amount, status, payment_method, payment_id) values (?, ?, ?, ?)",
-            [finalAmount, orderStatus, provider, paymentId]
+            "insert into orders (total_amount, status, payment_method, payment_id, customId) values (?, ?, ?, ?, ?)",
+            [finalAmount, orderStatus, provider || null, finalPaymentId, metadata?.userId || null]
         );
 
-        // order_items erstellen
         await this.db.queryDatabase(
             "insert into order_items (order_id, product_id, quantity, price) values (?, ?, ?, ?)",
             [result.insertId, metadata.product_id, 1, finalAmount]
         );
 
+        if (orderStatus === 'completed') {
+            try {
+                const products = await this.db.queryDatabase(
+                    "select * from products where id = ?",
+                    [metadata.product_id]
+                );
+
+                const product = products[0];
+
+                if (product?.action) {
+                    const action = this.resolveAction(product.action);
+                    if (action) {
+                        const params = product.action_params ? JSON.parse(product.action_params) : {};
+                        await action.handler(metadata, product, params);
+                    } else {
+                        console.warn(`[dSyncShop] action '${product.action}' not found in productActions`);
+                    }
+                }
+            } catch (err) {
+                console.error('[dSyncShop] error executing product action:', err);
+            }
+        }
+
         return result;
     }
 
-    async initDB(){
+    async initDB() {
         const shopTables = [
             {
                 name: "categories",
@@ -137,6 +165,8 @@ export default class dSyncShop {
                     {name: "image_url", type: "varchar(512)"},
                     {name: "stock", type: "int(12) NOT NULL DEFAULT 0"},
                     {name: "active", type: "tinyint(1) NOT NULL DEFAULT 1"},
+                    {name: "action", type: "varchar(100) DEFAULT NULL"},
+                    {name: "action_params", type: "text DEFAULT NULL"},
                     {name: "created_at", type: "bigint NOT NULL DEFAULT (UNIX_TIMESTAMP() * 1000)"}
                 ],
                 keys: [
@@ -149,8 +179,9 @@ export default class dSyncShop {
                 name: "orders",
                 columns: [
                     {name: "id", type: "int(12) NOT NULL AUTO_INCREMENT PRIMARY KEY"},
-                    {name: "customer_email", type: "varchar(255) NOT NULL"},
-                    {name: "customer_name", type: "varchar(255)"},
+                    {name: "customer_email", type: "varchar(255) DEFAULT NULL"},
+                    {name: "customer_name", type: "varchar(255) DEFAULT NULL"},
+                    {name: "customId", type: "varchar(255) DEFAULT NULL"},
                     {name: "total_amount", type: "decimal(10,2) NOT NULL"},
                     {name: "status", type: "varchar(50) NOT NULL DEFAULT 'pending'"},
                     {name: "payment_method", type: "varchar(50)"},
@@ -187,16 +218,33 @@ export default class dSyncShop {
         }
     }
 
-    registerRoutes(){
+    registerRoutes() {
         this.createProductRoutes();
         this.createCategoryRoutes();
         this.createPaymentRoute();
+        this.createActionRoutes();
+    }
+
+    createActionRoutes() {
+        this.app.get(`${this.basePath}/actions/list`, this.adminMiddleware(), (req, res) => {
+            const actions = Object.keys(this.productActions).map(key => {
+                const action = this.resolveAction(key);
+                return {
+                    key,
+                    label: action.label || key,
+                    params: action.params || []
+                };
+            });
+            return res.status(200).json({ error: null, actions });
+        });
     }
 
     createPaymentRoute() {
         this.app.post(`${this.basePath}/payment/create`, this.express.json(), async (req, res) => {
             try {
                 const { product_id, payment_method } = req.body;
+                const extra = this.enrichMetadata ? await this.enrichMetadata(req) : {};
+                if (extra === null) return res.status(401).json({ error: 'unauthorized' });
 
                 const products = await this.db.queryDatabase(
                     "select * from products where id = ?",
@@ -209,12 +257,11 @@ export default class dSyncShop {
 
                 const product = products[0];
 
-                // create payment
                 if (payment_method === 'paypal') {
                     const order = await this.payments.paypal.createOrder({
                         title: product.name,
                         price: parseFloat(product.price),
-                        metadata: { product_id: product.id }
+                        metadata: { product_id: product.id, ...extra }
                     });
 
                     return res.status(200).json({
@@ -222,12 +269,11 @@ export default class dSyncShop {
                         approvalUrl: order.approvalUrl,
                         orderId: order.orderId
                     });
-                } // coinbase
-                else if (payment_method === 'crypto') {
+                } else if (payment_method === 'crypto') {
                     const charge = await this.payments.coinbase.createCharge({
                         title: product.name,
                         price: parseFloat(product.price),
-                        metadata: { product_id: product.id }
+                        metadata: { product_id: product.id, ...extra }
                     });
 
                     return res.status(200).json({
@@ -242,7 +288,7 @@ export default class dSyncShop {
         });
     }
 
-    createProductRoutes(){
+    createProductRoutes() {
         this.app.get(`${this.basePath}/products/list`, async (req, res) => {
             try {
                 const products = await this.db.queryDatabase(
@@ -286,17 +332,31 @@ export default class dSyncShop {
             }
         });
 
-        this.app.post(`${this.basePath}/product/create`, this.express.json(), async (req, res) => {
+        this.app.post(`${this.basePath}/product/create`, this.express.json(), this.adminMiddleware(), async (req, res) => {
             try {
-                const { name, description, price, category_id, image_url, stock, active } = req.body;
+                const { name, description, price, category_id, image_url, stock, active, action, action_params } = req.body;
 
                 if (!name || !price) {
                     return res.status(400).json({ error: "name and price are required", product: null });
                 }
 
+                if (action && !this.resolveAction(action)) {
+                    return res.status(400).json({ error: `unknown action '${action}'`, product: null });
+                }
+
                 const result = await this.db.queryDatabase(
-                    "insert into products (name, description, price, category_id, image_url, stock, active) values (?, ?, ?, ?, ?, ?, ?)",
-                    [name, description || null, price, category_id || null, image_url || null, stock || 0, active !== undefined ? active : 1]
+                    "insert into products (name, description, price, category_id, image_url, stock, active, action, action_params) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    [
+                        name,
+                        description || null,
+                        price,
+                        category_id || null,
+                        image_url || null,
+                        stock || 0,
+                        active !== undefined ? active : 1,
+                        action || null,
+                        action_params ? JSON.stringify(action_params) : null
+                    ]
                 );
 
                 const products = await this.db.queryDatabase(
@@ -310,14 +370,29 @@ export default class dSyncShop {
             }
         });
 
-        this.app.post(`${this.basePath}/product/update/:id`, this.express.json(), async (req, res) => {
+        this.app.post(`${this.basePath}/product/update/:id`, this.express.json(), this.adminMiddleware(), async (req, res) => {
             try {
                 const { id } = req.params;
-                const { name, description, price, category_id, image_url, stock, active } = req.body;
+                const { name, description, price, category_id, image_url, stock, active, action, action_params } = req.body;
+
+                if (action && !this.resolveAction(action)) {
+                    return res.status(400).json({ error: `unknown action '${action}'`, product: null });
+                }
 
                 await this.db.queryDatabase(
-                    "update products set name = ?, description = ?, price = ?, category_id = ?, image_url = ?, stock = ?, active = ? where id = ?",
-                    [name, description, price, category_id, image_url, stock, active, id]
+                    "update products set name = ?, description = ?, price = ?, category_id = ?, image_url = ?, stock = ?, active = ?, action = ?, action_params = ? where id = ?",
+                    [
+                        name,
+                        description,
+                        price,
+                        category_id,
+                        image_url,
+                        stock,
+                        active,
+                        action || null,
+                        action_params ? JSON.stringify(action_params) : null,
+                        id
+                    ]
                 );
 
                 const products = await this.db.queryDatabase(
@@ -335,7 +410,7 @@ export default class dSyncShop {
             }
         });
 
-        this.app.delete(`${this.basePath}/product/delete/:id`, async (req, res) => {
+        this.app.delete(`${this.basePath}/product/delete/:id`, this.adminMiddleware(), async (req, res) => {
             try {
                 const { id } = req.params;
 
@@ -360,7 +435,7 @@ export default class dSyncShop {
         });
     }
 
-    createCategoryRoutes(){
+    createCategoryRoutes() {
         this.app.get(`${this.basePath}/categories/list`, async (req, res) => {
             try {
                 const categories = await this.db.queryDatabase(
@@ -373,7 +448,7 @@ export default class dSyncShop {
             }
         });
 
-        this.app.post(`${this.basePath}/category/create`, this.express.json(), async (req, res) => {
+        this.app.post(`${this.basePath}/category/create`, this.express.json(), this.adminMiddleware(), async (req, res) => {
             try {
                 const { name, description, parent_id } = req.body;
 
@@ -397,7 +472,7 @@ export default class dSyncShop {
             }
         });
 
-        this.app.post(`${this.basePath}/category/update/:id`, this.express.json(), async (req, res) => {
+        this.app.post(`${this.basePath}/category/update/:id`, this.express.json(), this.adminMiddleware(), async (req, res) => {
             try {
                 const { id } = req.params;
                 const { name, description, parent_id } = req.body;
@@ -422,7 +497,7 @@ export default class dSyncShop {
             }
         });
 
-        this.app.delete(`${this.basePath}/category/delete/:id`, async (req, res) => {
+        this.app.delete(`${this.basePath}/category/delete/:id`, this.adminMiddleware(), async (req, res) => {
             try {
                 const { id } = req.params;
 
