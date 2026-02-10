@@ -223,6 +223,12 @@ export default class dSyncShop {
         this.createCategoryRoutes();
         this.createPaymentRoute();
         this.createActionRoutes();
+
+        this.app.get(`${this.basePath}/admin/check`, async (req, res) => {
+            if (!this.isAdmin) return res.status(200).json({ isAdmin: false });
+            const result = await this.isAdmin(req);
+            return res.status(200).json({ isAdmin: !!result });
+        });
     }
 
     createActionRoutes() {
