@@ -11,7 +11,8 @@ const config = {
         productDelete: '/product/delete/',
         categoryCreate: '/category/create',
         categoryUpdate: '/category/update/',
-        categoryDelete: '/category/delete/'
+        categoryDelete: '/category/delete/',
+        adminCheck: '/admin/check'
     }
 };
 
@@ -21,6 +22,29 @@ let allCategories = [];
 let allActions = [];
 let currentCategory = 'all';
 let currentForm = null;
+let adminProductSearch = '';
+
+function authHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        'x-user-id': localStorage.getItem('id'),
+        'x-token': localStorage.getItem('token')
+    };
+}
+
+async function checkAdminStatus() {
+    try {
+        const response = await fetch(`${config.basePath}${config.apiEndpoints.adminCheck}`, {
+            headers: authHeaders()
+        });
+        const data = await response.json();
+        const btn = document.getElementById('adminBtn');
+        if (btn) btn.style.display = data.isAdmin ? 'block' : 'none';
+    } catch (e) {
+        const btn = document.getElementById('adminBtn');
+        if (btn) btn.style.display = 'none';
+    }
+}
 
 async function fetchCategories() {
     try {
@@ -50,11 +74,7 @@ async function fetchProducts(category = null) {
 async function fetchActions() {
     try {
         const response = await fetch(`${config.basePath}${config.apiEndpoints.actions}`, {
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': localStorage.getItem('id'),
-                'x-token': localStorage.getItem('token')
-            }
+            headers: authHeaders()
         });
         const data = await response.json();
         return data.error ? [] : (data.actions || []);
@@ -66,7 +86,15 @@ async function fetchActions() {
 
 function displayCategories(categories) {
     const categoryNav = document.getElementById('categoryNav');
-    categoryNav.innerHTML = '<button class="category-btn active" data-category="all">all products</button>';
+    categoryNav.innerHTML = '';
+
+    const allBtn = document.createElement('button');
+    allBtn.className = 'category-btn active';
+    allBtn.dataset.category = 'all';
+    allBtn.textContent = 'all products';
+    allBtn.addEventListener('click', () => filterByCategory('all'));
+    categoryNav.appendChild(allBtn);
+
     categories.forEach(category => {
         const btn = document.createElement('button');
         btn.className = 'category-btn';
@@ -139,11 +167,7 @@ async function processPurchase() {
     try {
         const response = await fetch(`${config.basePath}/payment/create`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': localStorage.getItem('id'),
-                'x-token': localStorage.getItem('token')
-            },
+            headers: authHeaders(),
             body: JSON.stringify({
                 product_id: currentPurchase.id,
                 payment_method: currentPurchase.payment
@@ -193,18 +217,35 @@ async function loadAdminData() {
     await loadAdminCategories();
 }
 
+function filterAdminProducts(products) {
+    if (!adminProductSearch) return products;
+    const q = adminProductSearch.toLowerCase();
+    return products.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        (p.description && p.description.toLowerCase().includes(q)) ||
+        (p.category_name && p.category_name.toLowerCase().includes(q))
+    );
+}
+
 async function loadAdminProducts() {
     const products = await fetchProducts();
+    allProducts = products;
+    renderAdminProducts(filterAdminProducts(products));
+}
+
+function renderAdminProducts(products) {
     const list = document.getElementById('productsList');
+
     if (products.length === 0) {
-        list.innerHTML = '<div class="error">no products yet</div>';
+        list.innerHTML = '<div class="admin-empty">no products found</div>';
         return;
     }
+
     list.innerHTML = '';
     products.forEach(product => {
         const actionLabel = product.action
             ? (allActions.find(a => a.key === product.action)?.label || product.action)
-            : 'none';
+            : null;
 
         let paramsText = '';
         if (product.action_params) {
@@ -219,19 +260,28 @@ async function loadAdminProducts() {
         const item = document.createElement('div');
         item.className = 'admin-item';
         item.innerHTML = `
-                <div class="admin-item-info">
+            <div class="admin-item-thumb">
+                <img src="${product.image_url || 'https://via.placeholder.com/56x56/1a1a1a/555?text=?'}" alt="${product.name}">
+            </div>
+            <div class="admin-item-info">
+                <div class="admin-item-header">
                     <h3>${product.name}</h3>
-                    <p><strong>price:</strong> $${parseFloat(product.price).toFixed(2)}</p>
-                    <p><strong>category:</strong> ${product.category_name || 'no category'}</p>
-                    <p><strong>stock:</strong> ${product.stock}</p>
-                    <p><strong>status:</strong> ${product.active ? 'active' : 'inactive'}</p>
-                    <p><strong>action:</strong> ${actionLabel}${paramsText ? ` (${paramsText})` : ''}</p>
+                    <div class="admin-item-badges">
+                        <span class="badge badge-price">$${parseFloat(product.price).toFixed(2)}</span>
+                        <span class="badge ${product.active ? 'badge-active' : 'badge-inactive'}">${product.active ? 'active' : 'inactive'}</span>
+                    </div>
                 </div>
-                <div class="admin-item-actions">
-                    <button class="btn-edit" onclick="editProduct(${product.id})">edit</button>
-                    <button class="btn-delete" onclick="deleteProduct(${product.id})">delete</button>
+                <div class="admin-item-meta">
+                    ${product.category_name ? `<span class="meta-tag"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>${product.category_name}</span>` : ''}
+                    <span class="meta-tag"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>stock: ${product.stock}</span>
+                    ${actionLabel ? `<span class="meta-tag meta-action"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>${actionLabel}${paramsText ? ` &middot; ${paramsText}` : ''}</span>` : ''}
                 </div>
-            `;
+            </div>
+            <div class="admin-item-actions">
+                <button class="btn-edit" onclick="editProduct(${product.id})">edit</button>
+                <button class="btn-delete" onclick="deleteProduct(${product.id})">delete</button>
+            </div>
+        `;
         list.appendChild(item);
     });
 }
@@ -240,7 +290,7 @@ async function loadAdminCategories() {
     const categories = await fetchCategories();
     const list = document.getElementById('categoriesList');
     if (categories.length === 0) {
-        list.innerHTML = '<div class="error">no categories yet</div>';
+        list.innerHTML = '<div class="admin-empty">no categories yet</div>';
         return;
     }
     list.innerHTML = '';
@@ -248,15 +298,22 @@ async function loadAdminCategories() {
         const item = document.createElement('div');
         item.className = 'admin-item';
         item.innerHTML = `
-                <div class="admin-item-info">
+            <div class="admin-item-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            </div>
+            <div class="admin-item-info">
+                <div class="admin-item-header">
                     <h3>${category.name}</h3>
-                    <p>${category.description || 'no description'}</p>
                 </div>
-                <div class="admin-item-actions">
-                    <button class="btn-edit" onclick="editCategory(${category.id})">edit</button>
-                    <button class="btn-delete" onclick="deleteCategory(${category.id})">delete</button>
+                <div class="admin-item-meta">
+                    <span class="meta-tag">${category.description || 'no description'}</span>
                 </div>
-            `;
+            </div>
+            <div class="admin-item-actions">
+                <button class="btn-edit" onclick="editCategory(${category.id})">edit</button>
+                <button class="btn-delete" onclick="deleteCategory(${category.id})">delete</button>
+            </div>
+        `;
         list.appendChild(item);
     });
 }
@@ -292,8 +349,7 @@ function openProductForm(product = null) {
     if (product?.action_params) {
         try {
             existingParams = JSON.parse(product.action_params);
-        } catch (e) {
-        }
+        } catch (e) {}
     }
 
     const actionOptions = [
@@ -393,7 +449,6 @@ async function submitForm() {
 async function saveProduct() {
     const action = document.getElementById('productAction').value || null;
 
-    // action params aus den dynamischen feldern sammeln
     let action_params = null;
     if (action) {
         const actionDef = allActions.find(a => a.key === action);
@@ -427,11 +482,7 @@ async function saveProduct() {
     try {
         const response = await fetch(url, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': localStorage.getItem('id'),
-                'x-token': localStorage.getItem('token')
-            },
+            headers: authHeaders(),
             body: JSON.stringify(data)
         });
         const result = await response.json();
@@ -460,11 +511,7 @@ async function saveCategory() {
     try {
         const response = await fetch(url, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': localStorage.getItem('id'),
-                'x-token': localStorage.getItem('token')
-            },
+            headers: authHeaders(),
             body: JSON.stringify(data)
         });
         const result = await response.json();
@@ -483,11 +530,7 @@ async function saveCategory() {
 
 async function editProduct(id) {
     const response = await fetch(`${config.basePath}${config.apiEndpoints.product}${id}`, {
-        headers: {
-            'Content-Type': 'application/json',
-            'x-user-id': localStorage.getItem('id'),
-            'x-token': localStorage.getItem('token')
-        }
+        headers: authHeaders()
     });
     const data = await response.json();
     data.error ? alert('error: ' + data.error) : openProductForm(data.product);
@@ -502,11 +545,8 @@ async function deleteProduct(id) {
     if (!confirm('delete this product?')) return;
     try {
         const response = await fetch(`${config.basePath}${config.apiEndpoints.productDelete}${id}`, {
-            method: 'DELETE', headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': localStorage.getItem('id'),
-                'x-token': localStorage.getItem('token')
-            }
+            method: 'DELETE',
+            headers: authHeaders()
         });
         const result = await response.json();
         if (result.error) {
@@ -520,32 +560,12 @@ async function deleteProduct(id) {
     }
 }
 
-async function checkAdminStatus() {
-    try {
-        const response = await fetch(`${config.basePath}/admin/check`, {
-            headers: {
-                'x-user-id': localStorage.getItem('id'),
-                'x-token': localStorage.getItem('token')
-            }
-        });
-        const data = await response.json();
-        const btn = document.getElementById('adminBtn');
-        if (btn) btn.style.display = data.isAdmin ? 'block' : 'none';
-    } catch (e) {
-        const btn = document.getElementById('adminBtn');
-        if (btn) btn.style.display = 'none';
-    }
-}
-
 async function deleteCategory(id) {
     if (!confirm('delete this category?')) return;
     try {
         const response = await fetch(`${config.basePath}${config.apiEndpoints.categoryDelete}${id}`, {
-            method: 'DELETE', headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': localStorage.getItem('id'),
-                'x-token': localStorage.getItem('token')
-            }
+            method: 'DELETE',
+            headers: authHeaders()
         });
         const result = await response.json();
         if (result.error) {
@@ -565,7 +585,6 @@ async function init() {
     displayCategories(allCategories);
     allProducts = await fetchProducts();
     displayProducts(allProducts);
-
     await checkAdminStatus();
 }
 
@@ -573,6 +592,14 @@ document.getElementById('paymentModal').addEventListener('click', (e) => {
     if (e.target.id === 'paymentModal') closeModal();
 });
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener('DOMContentLoaded', () => {
     init();
-})
+
+    const searchInput = document.getElementById('adminProductSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            adminProductSearch = e.target.value.trim();
+            renderAdminProducts(filterAdminProducts(allProducts));
+        });
+    }
+});

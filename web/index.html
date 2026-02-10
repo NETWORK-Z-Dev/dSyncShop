@@ -12,81 +12,121 @@
 </head>
 
 <body>
-    <button class="back-button" onclick="window.location.href = window.location.origin">← back</button>
-    <button class="admin-button" onclick="openAdminPanel()">admin</button>
+<div class="admin-overlay" id="adminOverlay" onclick="closeAdminPanel()"></div>
 
-    <div class="admin-overlay" id="adminOverlay" onclick="closeAdminPanel()"></div>
+<div class="sidebar" id="mainSidebar">
+    <div class="sidebar-top">
+        <button class="sidebar-back-btn" onclick="window.location.href = window.location.origin">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Back
+        </button>
+    </div>
 
-    <div class="sidebar" id="mainSidebar">
-        <h2>categories</h2>
-        <div class="category-nav" id="categoryNav">
-            <button class="category-btn active" data-category="all">All Products</button>
+    <div class="sidebar-section-label">categories</div>
+    <div class="category-nav" id="categoryNav">
+        <button class="category-btn active" data-category="all">all products</button>
+    </div>
+
+    <div class="sidebar-bottom">
+        <button class="sidebar-admin-btn" id="adminBtn" onclick="openAdminPanel()" style="display:none">
+            Admin Panel
+        </button>
+    </div>
+</div>
+
+<div class="main-content" id="mainContent">
+    <header>
+        <div class="header-inner">
+            <h1>Shop</h1>
+            <p class="header-sub">Browse different products</p>
+        </div>
+    </header>
+    <div class="container">
+        <div class="products" id="productsContainer">
+            <div class="loading">loading products...</div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="paymentModal">
+    <div class="modal-content">
+        <div class="modal-header">confirm purchase</div>
+        <div class="modal-body">
+            <p><strong>product:</strong> <span id="modalProduct"></span></p>
+            <p><strong>price:</strong> <span id="modalPrice"></span></p>
+            <p><strong>payment method:</strong> <span id="modalPayment"></span></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal btn-cancel" onclick="closeModal()">cancel</button>
+            <button class="btn-modal btn-confirm" onclick="processPurchase()">confirm</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="formModal">
+    <div class="modal-content">
+        <div class="modal-header" id="formModalTitle">add product</div>
+        <div class="modal-body" id="formModalBody"></div>
+        <div class="modal-footer">
+            <button class="btn-modal btn-cancel" onclick="closeFormModal()">cancel</button>
+            <button class="btn-modal btn-confirm" onclick="submitForm()">save</button>
+        </div>
+    </div>
+</div>
+
+<div class="admin-panel" id="adminPanel">
+
+    <div class="admin-topbar">
+        <div class="admin-topbar-left">
+            <h1>Admin Panel</h1>
+        </div>
+        <div class="admin-topbar-right">
+            <button class="admin-close-btn" onclick="closeAdminPanel()">&#x2715;</button>
         </div>
     </div>
 
-    <div class="main-content" id="mainContent">
-        <header>
-            <h1>shop</h1>
-        </header>
-        <div class="container">
-            <div class="products" id="productsContainer">
-                <div class="loading">loading products...</div>
-            </div>
-        </div>
+    <div class="admin-tabs">
+        <button class="tab-btn active" onclick="switchTab('products', event)">products</button>
+        <button class="tab-btn" onclick="switchTab('categories', event)">categories</button>
     </div>
 
-    <div class="modal" id="paymentModal">
-        <div class="modal-content">
-            <div class="modal-header">confirm purchase</div>
-            <div class="modal-body">
-                <p><strong>product:</strong> <span id="modalProduct"></span></p>
-                <p><strong>price:</strong> <span id="modalPrice"></span></p>
-                <p><strong>payment method:</strong> <span id="modalPayment"></span></p>
+    <div class="tab-content active" id="productsTab">
+        <div class="tab-toolbar">
+            <div class="search-input-wrap">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" id="adminProductSearch" placeholder="search products...">
             </div>
-            <div class="modal-footer">
-                <button class="btn-modal btn-cancel" onclick="closeModal()">cancel</button>
-                <button class="btn-modal btn-confirm" onclick="processPurchase()">confirm</button>
+            <div class="tab-toolbar-right">
+                <button class="btn-add" onclick="openProductForm()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    add product
+                </button>
             </div>
         </div>
+        <div class="admin-list" id="productsList"></div>
     </div>
 
-    <div class="modal" id="formModal">
-        <div class="modal-content">
-            <div class="modal-header" id="formModalTitle">add product</div>
-            <div class="modal-body" id="formModalBody"></div>
-            <div class="modal-footer">
-                <button class="btn-modal btn-cancel" onclick="closeFormModal()">cancel</button>
-                <button class="btn-modal btn-confirm" onclick="submitForm()">save</button>
+    <div class="tab-content" id="categoriesTab">
+        <div class="tab-toolbar">
+            <div class="tab-toolbar-right">
+                <button class="btn-add" onclick="openCategoryForm()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    add category
+                </button>
             </div>
         </div>
+        <div class="admin-list" id="categoriesList"></div>
     </div>
 
-    <div class="admin-panel" id="adminPanel">
-        <div class="admin-content">
-            <div class="admin-header">
-                <h1>admin panel</h1>
-                <button class="admin-close-btn" onclick="closeAdminPanel()">close admin</button>
-            </div>
-            <div class="admin-tabs">
-                <button class="tab-btn active" onclick="switchTab('products', event)">products</button>
-                <button class="tab-btn" onclick="switchTab('categories', event)">categories</button>
-            </div>
-            <div class="tab-content active" id="productsTab">
-                <div class="tab-header">
-                    <h2>manage products</h2>
-                    <button class="btn-add" onclick="openProductForm()">+ add product</button>
-                </div>
-                <div class="admin-list" id="productsList"></div>
-            </div>
-            <div class="tab-content" id="categoriesTab">
-                <div class="tab-header">
-                    <h2>manage categories</h2>
-                    <button class="btn-add" onclick="openCategoryForm()">+ add category</button>
-                </div>
-                <div class="admin-list" id="categoriesList"></div>
-            </div>
-        </div>
-    </div>
+</div>
 
 </body>
 
